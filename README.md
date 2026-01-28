@@ -1,0 +1,238 @@
+# Security Starter Library
+
+A Spring Boot security starter that provides authentication context management, permission-based access control, and internal service-to-service authentication using modern Java features.
+
+## Features
+
+- 🔐 **Permission-based Access Control** - Declarative `@HasPermission` annotation with scope levels
+- 🔗 **Internal Service Authentication** - Secure service-to-service calls with `@Internal` annotation
+- ⚡ **Virtual Thread Support** - Uses Java `ScopedValue` instead of `ThreadLocal`
+- 🛡️ **Timing Attack Protection** - Constant-time secret comparison
+- ⚙️ **Spring Boot Auto-configuration** - Zero-config setup with sensible defaults
+
+## Requirements
+
+- Java 25+
+- Spring Boot 4.0+
+- Intern Hub Common Library 2.0.1+
+
+## Installation
+
+### Gradle (Kotlin DSL)
+
+```kotlin
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
+
+dependencies {
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Library:1.0.0")
+}
+```
+
+### Maven
+
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependency>
+    <groupId>com.github.FPT-IS-Intern</groupId>
+    <artifactId>Intern-Hub-Security-Library</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+## Configuration
+
+Add the following to your `application.yml`:
+
+```yaml
+security:
+  # Required: Secret for internal service-to-service authentication
+  internal-secret: "your-secure-secret-key"
+
+  # Optional: Path prefix for internal endpoints (default: /internal/)
+  internal-path-prefix: "/internal/"
+
+  # Optional: Paths to exclude from security processing
+  excluded-paths:
+    - "/actuator/"
+    - "/health"
+```
+
+## Usage
+
+### 1. Enable Security
+
+Add `@EnableSecurity` to your main application class:
+
+```java
+@SpringBootApplication
+@EnableSecurity
+public class MyApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MyApplication.class, args);
+    }
+}
+```
+
+### 2. Permission-Based Access Control
+
+Use `@HasPermission` to protect endpoints with permission checks:
+
+```java
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    @GetMapping("/{id}")
+    @HasPermission(resource = "user", action = "read", scope = Scope.OWN)
+    public User getUser(@PathVariable Long id) {
+        // User can only access their own data
+        return userService.findById(id);
+    }
+
+    @GetMapping
+    @HasPermission(resource = "user", action = "read", scope = Scope.ALL)
+    public List<User> getAllUsers() {
+        // Admin-level access required
+        return userService.findAll();
+    }
+}
+```
+
+#### Scope Levels
+
+| Scope    | Value | Description                                         |
+| -------- | ----- | --------------------------------------------------- |
+| `OWN`    | 1     | User can only access their own resources            |
+| `TENANT` | 2     | User can access resources within their organization |
+| `ALL`    | 3     | User can access all resources (admin level)         |
+
+### 3. Internal Service Calls
+
+Protect endpoints for internal service-to-service communication:
+
+```java
+@RestController
+@RequestMapping("/internal/sync")
+public class InternalSyncController {
+
+    @PostMapping("/users")
+    @Internal
+    public void syncUsers(@RequestBody List<User> users) {
+        // Only accessible via internal service calls
+        userService.syncAll(users);
+    }
+}
+```
+
+To call internal endpoints from another service:
+
+```java
+// Add the X-Internal-Secret header
+restClient.post()
+    .uri("http://user-service/internal/sync/users")
+    .header("X-Internal-Secret", internalSecret)
+    .body(users)
+    .retrieve()
+    .toBodilessEntity();
+```
+
+### 4. Accessing Authentication Context
+
+Access the current user's authentication context programmatically:
+
+```java
+@Service
+public class MyService {
+
+    public void doSomething() {
+        AuthContext context = AuthContextHolder.get()
+            .orElseThrow(() -> new UnauthorizedException("Not authenticated"));
+
+        Long userId = context.userId();
+        boolean isInternal = context.internal();
+        Map<String, Scope> permissions = context.permissions();
+
+        // Use context for business logic
+    }
+}
+```
+
+## Request Headers
+
+The security filter reads the following headers (typically set by an API Gateway):
+
+| Header              | Description                          | Example                            |
+| ------------------- | ------------------------------------ | ---------------------------------- |
+| `X-Authenticated`   | Whether the request is authenticated | `true`                             |
+| `X-UserId`          | The authenticated user's ID          | `12345`                            |
+| `X-Authorities`     | Comma-separated permissions          | `user:read:OWN,order:write:TENANT` |
+| `X-Internal-Secret` | Secret for internal endpoints        | `your-secret-key`                  |
+
+### Authority Format
+
+Authorities follow the format: `resource:action:scope`
+
+Examples:
+
+- `user:read:OWN` - Can read own user data
+- `order:write:TENANT` - Can write orders within their tenant
+- `report:delete:ALL` - Can delete any report (admin)
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Request                              │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    SecurityFilter                           │
+│  • Validates internal secret for /internal/* endpoints      │
+│  • Parses authentication headers                            │
+│  • Binds AuthContext using ScopedValue                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    SecurityAspect                           │
+│  • Intercepts @HasPermission methods                        │
+│  • Intercepts @Internal methods                             │
+│  • Validates permissions against AuthContext                │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Controller Method                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Security Considerations
+
+1. **Internal Secret**: Store `security.internal-secret` securely (e.g., environment variable, secrets manager)
+2. **Timing Attacks**: The library uses constant-time comparison for secret validation
+3. **Header Validation**: All headers are defensively parsed with proper error handling
+4. **Virtual Threads**: Uses `ScopedValue` for thread-safe context propagation
+
+## Migration Guide
+
+### From Common Library
+
+If you were previously using security components from `intern-hub-common-library`:
+
+1. Add this security library as a dependency
+2. Update imports from `com.intern.hub.library.common.security` to `com.intern.hub.starter.security`
+3. Replace `@EnableWebSecurity` with `@EnableSecurity`
+4. Add `security.internal-secret` to your configuration
+
+## License
+
+MIT License. See `LICENSE` file for details.
