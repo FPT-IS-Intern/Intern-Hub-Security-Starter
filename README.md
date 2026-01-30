@@ -27,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.0")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.1")
 }
 ```
 
