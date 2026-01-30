@@ -8,6 +8,7 @@ A Spring Boot security starter that provides authentication context management, 
 - 🔗 **Internal Service Authentication** - Secure service-to-service calls with `@Internal` annotation
 - ⚡ **Virtual Thread Support** - Uses Java `ScopedValue` instead of `ThreadLocal`
 - 🛡️ **Timing Attack Protection** - Constant-time secret comparison
+- 📝 **JPA Auditing Integration** - Automatic tracking of created/modified by user ID
 - ⚙️ **Spring Boot Auto-configuration** - Zero-config setup with sensible defaults
 
 ## Requirements
@@ -63,6 +64,14 @@ security:
   excluded-paths:
     - "/actuator/"
     - "/health"
+
+# Optional: JPA Auditing configuration
+audit:
+  data:
+    # Enable/disable JPA auditing (default: true)
+    enabled: true
+    # Default user ID for system operations when no user is authenticated (default: 0)
+    default-system-id: 0
 ```
 
 ## Usage
@@ -163,6 +172,51 @@ public class MyService {
         // Use context for business logic
     }
 }
+```
+
+### 5. JPA Auditing
+
+The library provides automatic JPA auditing that tracks who created or modified entities. Simply extend the `AuditEntity` base class:
+
+```java
+@Entity
+public class Article extends AuditEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String title;
+    private String content;
+
+    // getters and setters
+}
+```
+
+#### Inherited Fields from AuditEntity
+
+| Field       | Type      | Description                                |
+| ----------- | --------- | ------------------------------------------ |
+| `createdAt` | `Long`    | Timestamp when entity was created (millis) |
+| `updatedAt` | `Long`    | Timestamp when entity was last updated     |
+| `createdBy` | `Long`    | User ID who created the entity             |
+| `updatedBy` | `Long`    | User ID who last modified the entity       |
+| `version`   | `Integer` | Optimistic locking version                 |
+
+#### How It Works
+
+- **Authenticated requests**: `createdBy` and `updatedBy` are automatically set to the authenticated user's ID from `AuthContextHolder`
+- **Unauthenticated/System requests**: Falls back to the configured `audit.data.default-system-id` (default: `0`)
+- **Custom AuditorAware**: You can provide your own `AuditorAware<Long>` bean to override the default behavior
+
+#### Disabling Auditing
+
+To disable the audit feature:
+
+```yaml
+audit:
+  data:
+    enabled: false
 ```
 
 ## Request Headers

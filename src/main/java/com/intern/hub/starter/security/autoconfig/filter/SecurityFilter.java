@@ -64,6 +64,7 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
     String uri = request.getRequestURI();
 
     if (isExcludedPath(uri)) {
+      log.debug("Excluding path from security filter: {}", uri);
       next(request, response, AuthContext.UNAUTHENTICATED_CONTEXT, filterChain);
       return;
     }
@@ -82,6 +83,7 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
 
     String authenticated = request.getHeader("X-Authenticated");
     if (authenticated == null || !authenticated.equalsIgnoreCase("true")) {
+      log.debug("Unauthenticated access to: {}", uri);
       next(request, response, AuthContext.UNAUTHENTICATED_CONTEXT, filterChain);
       return;
     }
@@ -159,8 +161,7 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
           RequestContextHolder.get().traceId(),
           null, System.currentTimeMillis());
     }
-    String responseBody = objectMapper.writeValueAsString(
-        ResponseApi.of(FORBIDDEN_RESPONSE_STATUS, null, metadata));
+    String responseBody = objectMapper.writeValueAsString(ResponseApi.of(FORBIDDEN_RESPONSE_STATUS, null, metadata));
     response.setContentType("application/json");
     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
     PrintWriter writer = response.getWriter();

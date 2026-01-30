@@ -1,1 +1,3 @@
 com.intern.hub.starter.security.autoconfig.CustomSecurityAutoConfiguration
+com.intern.hub.starter.security.autoconfig.audit.AuditAwareAutoConfiguration
+com.intern.hub.starter.security.autoconfig.audit.AuditJpaAutoConfiguration

@@ -6,6 +6,7 @@ import com.intern.hub.starter.security.annotation.HasPermission;
 import com.intern.hub.starter.security.context.AuthContext;
 import com.intern.hub.starter.security.context.AuthContextHolder;
 import com.intern.hub.starter.security.dto.Scope;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -41,6 +42,7 @@ import java.util.Map;
  * @see AuthContextHolder
  * @see ForbiddenException
  */
+@Slf4j
 @Aspect
 public class SecurityAspect {
 
@@ -64,12 +66,18 @@ public class SecurityAspect {
 
     AuthContext authContext = AuthContextHolder.get().orElse(null);
     if (authContext == null) {
+      log.debug("No AuthContext found in AuthContextHolder");
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
 
     Map<String, Scope> permissions = authContext.permissions();
     Scope userScope = permissions.get(hasPermission.resource() + ":" + hasPermission.action());
     if (userScope == null || hasPermission.scope().getValue() > userScope.getValue()) {
+      log.debug("User scope {} is insufficient for required scope {} on resource {} and action {}",
+          userScope,
+          hasPermission.scope(),
+          hasPermission.resource(),
+          hasPermission.action());
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
     return next(pjp);
@@ -85,6 +93,7 @@ public class SecurityAspect {
   public Object isInternal(@NonNull ProceedingJoinPoint pjp) {
     AuthContext authContext = AuthContextHolder.get().orElse(null);
     if (authContext == null || !authContext.internal()) {
+      log.debug("Access denied: method is marked as internal but AuthContext is missing or not internal");
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
     return next(pjp);

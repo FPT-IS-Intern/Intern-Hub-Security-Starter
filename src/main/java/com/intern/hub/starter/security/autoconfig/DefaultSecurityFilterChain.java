@@ -15,7 +15,7 @@ public class DefaultSecurityFilterChain {
   @Bean
   @ConditionalOnMissingBean(SecurityFilterChain.class)
   @ConditionalOnBean(HttpSecurity.class)
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) {
     http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
         .formLogin(AbstractHttpConfigurer::disable)
         .logout(AbstractHttpConfigurer::disable)

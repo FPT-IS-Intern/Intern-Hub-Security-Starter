@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.intern.hub.starter"
-version = "1.0.0"
+version = "1.0.1"
 description = "security-starter"
 
 java {
@@ -39,7 +39,6 @@ dependencies {
     api("org.springframework.boot:spring-boot-starter-security")
     api("org.springframework.boot:spring-boot-autoconfigure")
     api("org.springframework:spring-context")
-    api("tools.jackson.core:jackson-databind:3.0.3")
 
     implementation("org.springframework:spring-web")
     implementation("org.springframework:spring-aop")
@@ -47,8 +46,10 @@ dependencies {
     implementation("org.aspectj:aspectjweaver")
     implementation("org.slf4j:slf4j-api")
     implementation("jakarta.servlet:jakarta.servlet-api")
+    implementation("jakarta.persistence:jakarta.persistence-api")
+    implementation("org.springframework.data:spring-data-jpa")
 
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Common-Library:2.0.1")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Common-Library:2.0.2")
 }
 
 publishing {
