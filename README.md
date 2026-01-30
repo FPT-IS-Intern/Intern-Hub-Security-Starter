@@ -44,7 +44,7 @@ dependencies {
 <dependency>
     <groupId>com.github.FPT-IS-Intern</groupId>
     <artifactId>Intern-Hub-Security-Library</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
