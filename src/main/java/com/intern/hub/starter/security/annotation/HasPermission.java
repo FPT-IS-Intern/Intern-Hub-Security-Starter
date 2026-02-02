@@ -3,10 +3,7 @@ package com.intern.hub.starter.security.annotation;
 import com.intern.hub.starter.security.annotation.aspect.SecurityAspect;
 import com.intern.hub.starter.security.dto.Scope;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Annotation for declarative permission checking on controller methods.
@@ -34,6 +31,7 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
+@Documented
 public @interface HasPermission {
 
   /**

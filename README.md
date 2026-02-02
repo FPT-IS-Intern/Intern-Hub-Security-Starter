@@ -1,5 +1,7 @@
 # Security Starter Library
 
+[English](./README.md) | [Tiếng Việt](./README.vi.md)
+
 A Spring Boot security starter that provides authentication context management, permission-based access control, and internal service-to-service authentication using modern Java features.
 
 ## Features
@@ -15,7 +17,7 @@ A Spring Boot security starter that provides authentication context management, 
 
 - Java 25+
 - Spring Boot 4.0+
-- Intern Hub Common Library 2.0.1+
+- Intern Hub Common Library 2.0.2+
 
 ## Installation
 
@@ -27,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.1")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.2")
 }
 ```
 
@@ -44,7 +46,7 @@ dependencies {
 <dependency>
     <groupId>com.github.FPT-IS-Intern</groupId>
     <artifactId>Intern-Hub-Security-Library</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
@@ -195,13 +197,12 @@ public class Article extends AuditEntity {
 
 #### Inherited Fields from AuditEntity
 
-| Field       | Type      | Description                                |
-| ----------- | --------- | ------------------------------------------ |
-| `createdAt` | `Long`    | Timestamp when entity was created (millis) |
-| `updatedAt` | `Long`    | Timestamp when entity was last updated     |
-| `createdBy` | `Long`    | User ID who created the entity             |
-| `updatedBy` | `Long`    | User ID who last modified the entity       |
-| `version`   | `Integer` | Optimistic locking version                 |
+| Field       | Type   | Description                                |
+| ----------- | ------ | ------------------------------------------ |
+| `createdAt` | `Long` | Timestamp when entity was created (millis) |
+| `updatedAt` | `Long` | Timestamp when entity was last updated     |
+| `createdBy` | `Long` | User ID who created the entity             |
+| `updatedBy` | `Long` | User ID who last modified the entity       |
 
 #### How It Works
 
@@ -275,6 +276,16 @@ Examples:
 2. **Timing Attacks**: The library uses constant-time comparison for secret validation
 3. **Header Validation**: All headers are defensively parsed with proper error handling
 4. **Virtual Threads**: Uses `ScopedValue` for thread-safe context propagation
+
+## Breaking Changes
+
+### Version Column Removal in AuditEntity
+
+⚠️ **Caution when upgrading (1.0.2+):** The `version` column has been removed from the base `AuditEntity` class.
+
+**Reason:** Not all tables require a `version` column for optimistic locking, and its mandatory inclusion was causing performance issues in some scenarios.
+
+**Action Required:** If your entity requires optimistic locking, you must now explicitly add the `@Version` field to your entity class.
 
 ## Migration Guide
 

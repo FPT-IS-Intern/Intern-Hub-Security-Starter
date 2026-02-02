@@ -70,6 +70,11 @@ public class SecurityAspect {
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
 
+    if(!authContext.authenticated()) {
+      log.debug("User is not authenticated");
+      throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
+    }
+
     Map<String, Scope> permissions = authContext.permissions();
     Scope userScope = permissions.get(hasPermission.resource() + ":" + hasPermission.action());
     if (userScope == null || hasPermission.scope().getValue() > userScope.getValue()) {
@@ -94,6 +99,26 @@ public class SecurityAspect {
     AuthContext authContext = AuthContextHolder.get().orElse(null);
     if (authContext == null || !authContext.internal()) {
       log.debug("Access denied: method is marked as internal but AuthContext is missing or not internal");
+      throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
+    }
+    return next(pjp);
+  }
+
+  /**
+   * Around advice that checks for authentication before method execution.
+   *
+   * @param pjp the proceeding join point
+   * @return the result of the method execution
+   */
+  @Around("@annotation(com.intern.hub.starter.security.annotation.Authenticated)")
+  public Object isAuthenticated(@NonNull ProceedingJoinPoint pjp) {
+    AuthContext authContext = AuthContextHolder.get().orElse(null);
+    if (authContext == null) {
+      log.debug("Access denied: method requires authentication but no AuthContext found");
+      throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
+    }
+    if (!authContext.authenticated()) {
+      log.debug("Access denied: method requires authentication but user is not authenticated");
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
     return next(pjp);

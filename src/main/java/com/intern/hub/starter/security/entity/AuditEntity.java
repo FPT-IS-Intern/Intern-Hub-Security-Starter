@@ -3,7 +3,6 @@ package com.intern.hub.starter.security.entity;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
@@ -21,9 +20,6 @@ public abstract class AuditEntity {
   Long createdAt;
 
   Long updatedAt;
-
-  @Version
-  Integer version;
 
   @CreatedBy
   Long createdBy;

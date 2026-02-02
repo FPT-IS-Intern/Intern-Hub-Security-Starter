@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.intern.hub.starter"
-version = "1.0.1"
+version = "1.0.2"
 description = "security-starter"
 
 java {
@@ -56,6 +56,12 @@ publishing {
     publications {
         register<MavenPublication>("gpr") {
             from(components["java"])
+            groupId = group.toString()
+            artifactId = "security"
+            version = version.toString()
         }
+    }
+    repositories {
+        mavenLocal()
     }
 }
