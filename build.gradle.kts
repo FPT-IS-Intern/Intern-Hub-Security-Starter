@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.intern.hub.starter"
-version = "1.0.2"
+version = "1.0.3"
 description = "security-starter"
 
 java {
@@ -35,6 +35,7 @@ dependencyManagement {
 dependencies {
     compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
     api("org.springframework.boot:spring-boot-starter-security")
     api("org.springframework.boot:spring-boot-autoconfigure")
@@ -50,6 +51,16 @@ dependencies {
     implementation("org.springframework.data:spring-data-jpa")
 
     implementation("com.github.FPT-IS-Intern:Intern-Hub-Common-Library:2.0.2")
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("-parameters")
+}
+
+// Configure jar task to handle duplicate spring-configuration-metadata.json files
+tasks.named<org.gradle.jvm.tasks.Jar>("jar") {
+    // Set duplicate strategy to allow both auto-generated and additional metadata
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 publishing {
