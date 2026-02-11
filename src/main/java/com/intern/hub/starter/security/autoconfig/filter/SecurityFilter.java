@@ -13,16 +13,15 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -43,15 +42,22 @@ import java.util.Set;
  * @see AuthContextHolder
  */
 @Slf4j
-@RequiredArgsConstructor
 public class SecurityFilter extends OncePerRequestFilter implements Ordered {
 
   private final SecurityProperties securityProperties;
   private final ObjectMapper objectMapper;
 
+  private final Set<String> excludedPaths;
+
   private static final ResponseStatus FORBIDDEN_RESPONSE_STATUS = new ResponseStatus(
       ExceptionConstant.FORBIDDEN_DEFAULT_CODE,
       "Forbidden: Invalid internal secret");
+
+  public SecurityFilter(SecurityProperties securityProperties, ObjectMapper objectMapper) {
+    this.securityProperties = securityProperties;
+    this.objectMapper = objectMapper;
+    this.excludedPaths = new HashSet<>(securityProperties.getExcludedPaths());
+  }
 
   @Override
   protected void doFilterInternal(
@@ -93,7 +99,12 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
   }
 
   private boolean isExcludedPath(String uri) {
-    return securityProperties.getExcludedPaths().stream().anyMatch(uri::startsWith);
+    for (String prefix : excludedPaths) {
+      if (uri.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private boolean isCorrectInternalSecret(String internalSecret) {
@@ -122,9 +133,14 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
     }
   }
 
+  private static final Set<String> EMPTY_AUTHORITIES = Set.of();
+
   private Set<String> parseAuthorities(String authoritiesHeader) {
+    if (authoritiesHeader == null || authoritiesHeader.isBlank()) {
+      return EMPTY_AUTHORITIES;
+    }
     String[] authorities = authoritiesHeader.split(",");
-    return Set.of(authorities);
+    return authorities.length == 0 ? EMPTY_AUTHORITIES : Set.of(authorities);
   }
 
   private void responseForbidden(HttpServletResponse response) throws IOException {
@@ -135,12 +151,11 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
           RequestContextHolder.get().traceId(),
           null, System.currentTimeMillis());
     }
-    String responseBody = objectMapper.writeValueAsString(ResponseApi.of(FORBIDDEN_RESPONSE_STATUS, null, metadata));
     response.setContentType("application/json");
     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-    PrintWriter writer = response.getWriter();
-    writer.write(responseBody);
-    writer.flush();
+    response.setCharacterEncoding(StandardCharsets.UTF_8);
+    ResponseApi<?> responseApi = ResponseApi.of(FORBIDDEN_RESPONSE_STATUS, null, metadata);
+    objectMapper.writeValue(response.getWriter(), responseApi);
   }
 
   private void next(HttpServletRequest request,
