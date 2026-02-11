@@ -1,9 +1,8 @@
 package com.intern.hub.starter.security.context;
 
 import com.intern.hub.starter.security.annotation.aspect.SecurityAspect;
-import com.intern.hub.starter.security.dto.Scope;
 
-import java.util.Map;
+import java.util.Set;
 
 /**
  * Immutable record representing the authentication context for the current
@@ -19,7 +18,6 @@ import java.util.Map;
  * <ul>
  * <li>Key format: "{@code resource:action}" (e.g., "user:read",
  * "order:delete")</li>
- * <li>Value: {@link Scope} indicating the access level (OWN, TENANT, or
  * ALL)</li>
  * </ul>
  *
@@ -29,13 +27,12 @@ import java.util.Map;
  *                      not authenticated)
  * @param permissions   a map of permission keys to their corresponding scopes
  * @see AuthContextHolder
- * @see Scope
  */
 public record AuthContext(
     boolean internal,
     boolean authenticated,
     Long userId,
-    Map<String, Scope> permissions) {
+    Set<String> permissions) {
 
   /**
    * Context for internal service-to-service requests.
@@ -47,7 +44,7 @@ public record AuthContext(
       true,
       false,
       null,
-      Map.of());
+      Set.of());
 
   /**
    * Context for unauthenticated requests.
@@ -59,6 +56,6 @@ public record AuthContext(
       false,
       false,
       null,
-      Map.of());
+      Set.of());
 
 }

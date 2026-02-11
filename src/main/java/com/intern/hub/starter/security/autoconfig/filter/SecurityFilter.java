@@ -8,7 +8,6 @@ import com.intern.hub.library.common.exception.ExceptionConstant;
 import com.intern.hub.starter.security.autoconfig.SecurityProperties;
 import com.intern.hub.starter.security.context.AuthContext;
 import com.intern.hub.starter.security.context.AuthContextHolder;
-import com.intern.hub.starter.security.dto.Scope;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,9 +23,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
 
 /**
  * Security filter that handles authentication context propagation and internal
@@ -96,8 +93,7 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
   }
 
   private boolean isExcludedPath(String uri) {
-    return securityProperties.getExcludedPaths().stream()
-        .anyMatch(uri::startsWith);
+    return securityProperties.getExcludedPaths().stream().anyMatch(uri::startsWith);
   }
 
   private boolean isCorrectInternalSecret(String internalSecret) {
@@ -112,45 +108,23 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
   private AuthContext populateAuthContext(HttpServletRequest request) {
     String userIdHeader = request.getHeader("X-UserId");
     String authoritiesHeader = request.getHeader("X-Authorities");
-
-    Long userId = parseUserId(userIdHeader);
-    if (userId == null || authoritiesHeader == null) {
-      return AuthContext.UNAUTHENTICATED_CONTEXT;
-    }
-
-    Map<String, Scope> authorityMap = parseAuthorities(authoritiesHeader);
-    return new AuthContext(false, true, userId, Collections.unmodifiableMap(authorityMap));
+    return new AuthContext(false, true, parseUserId(userIdHeader), parseAuthorities(authoritiesHeader));
   }
 
-  private Long parseUserId(String userIdHeader) {
+  private long parseUserId(String userIdHeader) {
     if (userIdHeader == null || userIdHeader.isBlank()) {
-      return null;
+      throw new IllegalArgumentException("Missing X-UserId header");
     }
     try {
       return Long.parseLong(userIdHeader);
     } catch (NumberFormatException e) {
-      log.warn("Invalid X-UserId header value: {}", userIdHeader);
-      return null;
+      throw new IllegalArgumentException("Invalid X-UserId header: " + userIdHeader, e);
     }
   }
 
-  private Map<String, Scope> parseAuthorities(String authoritiesHeader) {
+  private Set<String> parseAuthorities(String authoritiesHeader) {
     String[] authorities = authoritiesHeader.split(",");
-    Map<String, Scope> authorityMap = new HashMap<>(authorities.length);
-    for (String authority : authorities) {
-      String[] parts = authority.split(":");
-      if (parts.length != 3) {
-        log.debug("Skipping malformed authority: {}", authority);
-        continue;
-      }
-      try {
-        Scope scope = Scope.valueOf(parts[2].toUpperCase());
-        authorityMap.put(parts[0] + ":" + parts[1], scope);
-      } catch (IllegalArgumentException e) {
-        log.warn("Invalid scope value in authority: {}", authority);
-      }
-    }
-    return authorityMap;
+    return Set.of(authorities);
   }
 
   private void responseForbidden(HttpServletResponse response) throws IOException {

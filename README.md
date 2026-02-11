@@ -3,10 +3,10 @@
 [English](./README.md) | [Tiếng Việt](./README.vi.md)
 
 A Spring Boot security starter that provides authentication context management, permission-based access control, and internal service-to-service authentication using modern Java features.
-
+ 
 ## Features
 
-- 🔐 **Permission-based Access Control** - Declarative `@HasPermission` annotation with scope levels
+- 🔐 **Permission-based Access Control** - Declarative `@HasPermission` annotation
 - 🔗 **Internal Service Authentication** - Secure service-to-service calls with `@Internal` annotation
 - ⚡ **Virtual Thread Support** - Uses Java `ScopedValue` instead of `ThreadLocal`
 - 🛡️ **Timing Attack Protection** - Constant-time secret comparison
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.2")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.4")
 }
 ```
 
@@ -46,7 +46,7 @@ dependencies {
 <dependency>
     <groupId>com.github.FPT-IS-Intern</groupId>
     <artifactId>Intern-Hub-Security-Library</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -102,28 +102,21 @@ Use `@HasPermission` to protect endpoints with permission checks:
 public class UserController {
 
     @GetMapping("/{id}")
-    @HasPermission(resource = "user", action = "read", scope = Scope.OWN)
+    @HasPermission(resource = "user", action = "read")
     public User getUser(@PathVariable Long id) {
-        // User can only access their own data
+        // User needs 'user:read' permission
         return userService.findById(id);
     }
 
     @GetMapping
-    @HasPermission(resource = "user", action = "read", scope = Scope.ALL)
+    @HasPermission(resource = "user", action = "list")
     public List<User> getAllUsers() {
-        // Admin-level access required
+        // User needs 'user:list' permission
         return userService.findAll();
     }
 }
 ```
 
-#### Scope Levels
-
-| Scope    | Value | Description                                         |
-| -------- | ----- | --------------------------------------------------- |
-| `OWN`    | 1     | User can only access their own resources            |
-| `TENANT` | 2     | User can access resources within their organization |
-| `ALL`    | 3     | User can access all resources (admin level)         |
 
 ### 3. Internal Service Calls
 
@@ -169,7 +162,7 @@ public class MyService {
 
         Long userId = context.userId();
         boolean isInternal = context.internal();
-        Map<String, Scope> permissions = context.permissions();
+        Set<String> permissions = context.permissions();
 
         // Use context for business logic
     }

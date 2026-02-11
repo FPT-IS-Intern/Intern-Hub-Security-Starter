@@ -1,6 +1,7 @@
 package com.intern.hub.starter.security.entity;
 
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 import static lombok.AccessLevel.PRIVATE;

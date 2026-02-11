@@ -1,7 +1,6 @@
 package com.intern.hub.starter.security.annotation;
 
 import com.intern.hub.starter.security.annotation.aspect.SecurityAspect;
-import com.intern.hub.starter.security.dto.Scope;
 
 import java.lang.annotation.*;
 
@@ -26,7 +25,6 @@ import java.lang.annotation.*;
  * }</pre>
  *
  * @see SecurityAspect
- * @see Scope
  * @see com.intern.hub.starter.security.context.AuthContext
  */
 @Target(ElementType.METHOD)
@@ -49,14 +47,5 @@ public @interface HasPermission {
    * @return the action name
    */
   String action();
-
-  /**
-   * The required scope level for the permission.
-   * <p>Defaults to {@link Scope#OWN}, meaning users can only access their own resources by default.</p>
-   *
-   * @return the required scope level
-   * @see Scope
-   */
-  Scope scope() default Scope.OWN;
 
 }

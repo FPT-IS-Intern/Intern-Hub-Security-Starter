@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.intern.hub.starter"
-version = "1.0.3"
+version = "1.0.4"
 description = "security-starter"
 
 java {
@@ -50,7 +50,7 @@ dependencies {
     implementation("jakarta.persistence:jakarta.persistence-api")
     implementation("org.springframework.data:spring-data-jpa")
 
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Common-Library:2.0.2")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Common-Library:2.0.3")
 }
 
 tasks.withType<JavaCompile> {

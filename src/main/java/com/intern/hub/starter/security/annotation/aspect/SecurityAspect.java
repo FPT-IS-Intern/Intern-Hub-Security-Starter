@@ -5,15 +5,12 @@ import com.intern.hub.library.common.exception.ForbiddenException;
 import com.intern.hub.starter.security.annotation.HasPermission;
 import com.intern.hub.starter.security.context.AuthContext;
 import com.intern.hub.starter.security.context.AuthContextHolder;
-import com.intern.hub.starter.security.dto.Scope;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.jspecify.annotations.NonNull;
-
-import java.util.Map;
 
 /**
  * Aspect that enforces permission checking for methods annotated with
@@ -70,21 +67,19 @@ public class SecurityAspect {
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
 
-    if(!authContext.authenticated()) {
+    if (!authContext.authenticated()) {
       log.debug("User is not authenticated");
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
 
-    Map<String, Scope> permissions = authContext.permissions();
-    Scope userScope = permissions.get(hasPermission.resource() + ":" + hasPermission.action());
-    if (userScope == null || hasPermission.scope().getValue() > userScope.getValue()) {
-      log.debug("User scope {} is insufficient for required scope {} on resource {} and action {}",
-          userScope,
-          hasPermission.scope(),
-          hasPermission.resource(),
-          hasPermission.action());
+    String permissionKey = hasPermission.resource() + ":" + hasPermission.action();
+
+    if (!authContext.permissions().contains(permissionKey)) {
+      log.debug("Access denied: user lacks permission {} required for method {}", permissionKey,
+          methodSignature.getMethod().getName());
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
+
     return next(pjp);
   }
 

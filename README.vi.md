@@ -6,7 +6,7 @@ Một starter bảo mật cho Spring Boot cung cấp quản lý ngữ cảnh xá
 
 ## Tính năng
 
-- 🔐 **Kiểm soát truy cập dựa trên quyền** - Annotation `@HasPermission` mang tính khai báo với các cấp độ phạm vi (scope levels)
+- 🔐 **Kiểm soát truy cập dựa trên quyền** - Annotation `@HasPermission` mang tính khai báo
 - 🔗 **Xác thực dịch vụ nội bộ** - Bảo mật các cuộc gọi giữa các dịch vụ (service-to-service) với annotation `@Internal`
 - ⚡ **Hỗ trợ Virtual Thread** - Sử dụng Java `ScopedValue` thay vì `ThreadLocal`
 - 🛡️ **Bảo vệ tấn công thời gian (Timing Attack)** - So sánh bí mật (secret) với thời gian không đổi (constant-time)
@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.1")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.4")
 }
 ```
 
@@ -46,7 +46,7 @@ dependencies {
 <dependency>
     <groupId>com.github.FPT-IS-Intern</groupId>
     <artifactId>Intern-Hub-Security-Library</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
@@ -102,28 +102,21 @@ Sử dụng `@HasPermission` để bảo vệ các endpoint với các kiểm tr
 public class UserController {
 
     @GetMapping("/{id}")
-    @HasPermission(resource = "user", action = "read", scope = Scope.OWN)
+    @HasPermission(resource = "user", action = "read")
     public User getUser(@PathVariable Long id) {
-        // Người dùng chỉ có thể truy cập dữ liệu của chính mình
+        // Người dùng cần quyền 'user:read'
         return userService.findById(id);
     }
 
     @GetMapping
-    @HasPermission(resource = "user", action = "read", scope = Scope.ALL)
+    @HasPermission(resource = "user", action = "read-all")
     public List<User> getAllUsers() {
-        // Yêu cầu quyền truy cập cấp quản trị viên (admin)
+        // Người dùng cần quyền 'user:read-all'
         return userService.findAll();
     }
 }
 ```
 
-#### Các cấp độ phạm vi (Scope Levels)
-
-| Scope    | Giá trị | Mô tả                                                      |
-| -------- | ------- | ---------------------------------------------------------- |
-| `OWN`    | 1       | Người dùng chỉ có thể truy cập tài nguyên của chính họ     |
-| `TENANT` | 2       | Người dùng có thể truy cập tài nguyên trong tổ chức của họ |
-| `ALL`    | 3       | Người dùng có thể truy cập tất cả tài nguyên (cấp admin)   |
 
 ### 3. Cuộc gọi dịch vụ nội bộ (Internal Service Calls)
 
@@ -169,7 +162,7 @@ public class MyService {
 
         Long userId = context.userId();
         boolean isInternal = context.internal();
-        Map<String, Scope> permissions = context.permissions();
+        Set<String> permissions = context.permissions();
 
         // Sử dụng context cho logic nghiệp vụ
     }

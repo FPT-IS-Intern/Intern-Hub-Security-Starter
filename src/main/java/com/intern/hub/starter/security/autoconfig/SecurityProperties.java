@@ -22,7 +22,6 @@ import java.util.List;
  *   internal-path-prefix: "/internal/"
  * }</pre>
  *
- * @see com.intern.hub.starter.security.autoconfig.filter.SecurityFilter
  */
 @Getter
 @Setter
