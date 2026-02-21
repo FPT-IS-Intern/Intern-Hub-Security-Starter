@@ -72,11 +72,10 @@ public class SecurityAspect {
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
 
-    String permissionKey = hasPermission.resource() + ":" + hasPermission.action();
+    String permissionKey = hasPermission.resource() + ":" + hasPermission.action().value;
 
     if (!authContext.permissions().contains(permissionKey)) {
-      log.debug("Access denied: user lacks permission {} required for method {}", permissionKey,
-          methodSignature.getMethod().getName());
+      log.debug("Access denied: user lacks permission {} required for method {}", permissionKey, methodSignature.getMethod().getName());
       throw new ForbiddenException(ExceptionConstant.FORBIDDEN_DEFAULT_CODE);
     }
 

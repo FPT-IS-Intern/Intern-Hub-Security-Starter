@@ -1,6 +1,7 @@
 package com.intern.hub.starter.security.annotation;
 
 import com.intern.hub.starter.security.annotation.aspect.SecurityAspect;
+import com.intern.hub.starter.security.entity.Action;
 
 import java.lang.annotation.*;
 
@@ -46,6 +47,6 @@ public @interface HasPermission {
    *
    * @return the action name
    */
-  String action();
+  Action action();
 
 }
