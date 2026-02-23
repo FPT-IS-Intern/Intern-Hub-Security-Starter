@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.4")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.6")
 }
 ```
 
@@ -46,7 +46,7 @@ dependencies {
 <dependency>
     <groupId>com.github.FPT-IS-Intern</groupId>
     <artifactId>Intern-Hub-Security-Library</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.6</version>
 </dependency>
 ```
 

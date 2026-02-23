@@ -7,6 +7,7 @@ A Spring Boot security starter that provides authentication context management, 
 ## Features
 
 - 🔐 **Permission-based Access Control** - Declarative `@HasPermission` annotation
+- 🔑 **Authentication Guard** - Declarative `@Authenticated` annotation
 - 🔗 **Internal Service Authentication** - Secure service-to-service calls with `@Internal` annotation
 - ⚡ **Virtual Thread Support** - Uses Java `ScopedValue` instead of `ThreadLocal`
 - 🛡️ **Timing Attack Protection** - Constant-time secret comparison
@@ -17,7 +18,7 @@ A Spring Boot security starter that provides authentication context management, 
 
 - Java 25+
 - Spring Boot 4.0+
-- Intern Hub Common Library 2.0.2+
+- Intern Hub Common Library 2.0.3+
 
 ## Installation
 
@@ -29,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.4")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.6")
 }
 ```
 
@@ -46,7 +47,7 @@ dependencies {
 <dependency>
     <groupId>com.github.FPT-IS-Intern</groupId>
     <artifactId>Intern-Hub-Security-Library</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.6</version>
 </dependency>
 ```
 
@@ -94,7 +95,15 @@ public class MyApplication {
 
 ### 2. Permission-Based Access Control
 
-Use `@HasPermission` to protect endpoints with permission checks:
+Use `@HasPermission` to protect endpoints with permission checks. The `action` field accepts a value from the `Action` enum:
+
+| `Action` value | Meaning       |
+| -------------- | ------------- |
+| `Action.CREATE` | Create a resource |
+| `Action.READ`   | Read / view a resource |
+| `Action.UPDATE` | Update a resource |
+| `Action.DELETE` | Delete a resource |
+| `Action.REVIEW` | Review a resource |
 
 ```java
 @RestController
@@ -102,23 +111,55 @@ Use `@HasPermission` to protect endpoints with permission checks:
 public class UserController {
 
     @GetMapping("/{id}")
-    @HasPermission(resource = "user", action = "read")
+    @HasPermission(resource = "user", action = Action.READ)
     public User getUser(@PathVariable Long id) {
         // User needs 'user:read' permission
         return userService.findById(id);
     }
 
-    @GetMapping
-    @HasPermission(resource = "user", action = "list")
-    public List<User> getAllUsers() {
-        // User needs 'user:list' permission
-        return userService.findAll();
+    @PostMapping
+    @HasPermission(resource = "user", action = Action.CREATE)
+    public User createUser(@RequestBody CreateUserRequest request) {
+        // User needs 'user:create' permission
+        return userService.create(request);
+    }
+
+    @PutMapping("/{id}")
+    @HasPermission(resource = "user", action = Action.UPDATE)
+    public User updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
+        // User needs 'user:update' permission
+        return userService.update(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @HasPermission(resource = "user", action = Action.DELETE)
+    public void deleteUser(@PathVariable Long id) {
+        // User needs 'user:delete' permission
+        userService.delete(id);
     }
 }
 ```
 
+### 3. Authentication Guard
 
-### 3. Internal Service Calls
+Use `@Authenticated` to ensure the caller is authenticated without checking a specific permission:
+
+```java
+@RestController
+@RequestMapping("/api/profile")
+public class ProfileController {
+
+    @GetMapping
+    @Authenticated
+    public Profile getProfile() {
+        // Any authenticated user can access this
+        AuthContext context = AuthContextHolder.get().orElseThrow();
+        return profileService.findByUserId(context.userId());
+    }
+}
+```
+
+### 4. Internal Service Calls
 
 Protect endpoints for internal service-to-service communication:
 
@@ -148,7 +189,7 @@ restClient.post()
     .toBodilessEntity();
 ```
 
-### 4. Accessing Authentication Context
+### 5. Accessing Authentication Context
 
 Access the current user's authentication context programmatically:
 
@@ -169,7 +210,7 @@ public class MyService {
 }
 ```
 
-### 5. JPA Auditing
+### 6. JPA Auditing
 
 The library provides automatic JPA auditing that tracks who created or modified entities. Simply extend the `AuditEntity` base class:
 
@@ -217,22 +258,33 @@ audit:
 
 The security filter reads the following headers (typically set by an API Gateway):
 
-| Header              | Description                          | Example                            |
-| ------------------- | ------------------------------------ | ---------------------------------- |
-| `X-Authenticated`   | Whether the request is authenticated | `true`                             |
-| `X-UserId`          | The authenticated user's ID          | `12345`                            |
-| `X-Authorities`     | Comma-separated permissions          | `user:read:OWN,order:write:TENANT` |
-| `X-Internal-Secret` | Secret for internal endpoints        | `your-secret-key`                  |
+| Header              | Description                          | Example                      |
+| ------------------- | ------------------------------------ | ---------------------------- |
+| `X-Authenticated`   | Whether the request is authenticated | `true`                       |
+| `X-UserId`          | The authenticated user's ID          | `12345`                      |
+| `X-Authorities`     | Comma-separated permissions          | `user:read,order:create`     |
+| `X-Internal-Secret` | Secret for internal endpoints        | `your-secret-key`            |
 
 ### Authority Format
 
-Authorities follow the format: `resource:action:scope`
+Authorities follow the format: `resource:action`
+
+The `action` segment must match one of the `Action` enum values (lowercase):
+
+| Value      | Enum Constant   |
+| ---------- | --------------- |
+| `create`   | `Action.CREATE` |
+| `read`     | `Action.READ`   |
+| `update`   | `Action.UPDATE` |
+| `delete`   | `Action.DELETE` |
+| `review`   | `Action.REVIEW` |
 
 Examples:
 
-- `user:read:OWN` - Can read own user data
-- `order:write:TENANT` - Can write orders within their tenant
-- `report:delete:ALL` - Can delete any report (admin)
+- `user:read` - Can read user data
+- `order:create` - Can create orders
+- `report:delete` - Can delete reports
+- `task:review` - Can review tasks
 
 ## Architecture
 
@@ -253,6 +305,7 @@ Examples:
 ┌─────────────────────────────────────────────────────────────┐
 │                    SecurityAspect                           │
 │  • Intercepts @HasPermission methods                        │
+│  • Intercepts @Authenticated methods                        │
 │  • Intercepts @Internal methods                             │
 │  • Validates permissions against AuthContext                │
 └─────────────────────────────────────────────────────────────┘
@@ -271,6 +324,23 @@ Examples:
 4. **Virtual Threads**: Uses `ScopedValue` for thread-safe context propagation
 
 ## Breaking Changes
+
+### Version 1.0.5 – Authority Format Change
+
+⚠️ **Breaking change when upgrading to 1.0.5+:** The authority format has been simplified and the `@HasPermission` annotation now uses a typed `Action` enum.
+
+**Old format (≤ 1.0.4):**
+- Authority string: `resource:action:scope` (e.g., `user:read:OWN`, `order:write:TENANT`)
+- Annotation: `@HasPermission(resource = "user", action = "read", scope = Scope.OWN)`
+
+**New format (1.0.5+):**
+- Authority string: `resource:action` (e.g., `user:read`, `order:create`)
+- Annotation: `@HasPermission(resource = "user", action = Action.READ)`
+
+**Action Required:**
+1. Update the `X-Authorities` header sent by your API Gateway — remove the scope segment.
+2. Replace all `@HasPermission` usages to use the `Action` enum and remove the `scope` attribute.
+3. Replace any string-based action values with the corresponding `Action` enum constant.
 
 ### Version Column Removal in AuditEntity
 
