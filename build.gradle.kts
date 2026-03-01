@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.intern.hub.starter"
-version = "1.0.7"
+version = "1.0.8"
 description = "security-starter"
 
 java {
