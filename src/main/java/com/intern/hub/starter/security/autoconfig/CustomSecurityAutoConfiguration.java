@@ -2,7 +2,9 @@ package com.intern.hub.starter.security.autoconfig;
 
 import com.intern.hub.starter.security.annotation.aspect.SecurityAspect;
 import com.intern.hub.starter.security.autoconfig.filter.SecurityFilter;
+import io.opentelemetry.api.trace.SpanContext;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -43,6 +45,12 @@ public class CustomSecurityAutoConfiguration {
   @ConditionalOnMissingBean(SecurityAspect.class)
   public SecurityAspect securityAspect() {
     return new SecurityAspect();
+  }
+
+  @Bean
+  @ConditionalOnBean(SpanContext.class)
+  public UserIdSpanProcessor userIdSpanProcessor() {
+    return new UserIdSpanProcessor();
   }
 
 }

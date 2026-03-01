@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.intern.hub.starter"
-version = "1.0.6"
+version = "1.0.7"
 description = "security-starter"
 
 java {
@@ -50,7 +50,9 @@ dependencies {
     implementation("jakarta.persistence:jakarta.persistence-api")
     implementation("org.springframework.data:spring-data-jpa")
 
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Common-Library:2.0.3")
+    compileOnly("io.opentelemetry:opentelemetry-sdk-trace")
+
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Common-Library:2.0.4")
 }
 
 tasks.withType<JavaCompile> {

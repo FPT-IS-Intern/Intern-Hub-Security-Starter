@@ -8,12 +8,15 @@ import com.intern.hub.library.common.exception.ExceptionConstant;
 import com.intern.hub.starter.security.autoconfig.SecurityProperties;
 import com.intern.hub.starter.security.context.AuthContext;
 import com.intern.hub.starter.security.context.AuthContextHolder;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
@@ -53,6 +56,8 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
       ExceptionConstant.FORBIDDEN_DEFAULT_CODE,
       "Forbidden: Invalid internal secret");
 
+  private static final String MDC_USER_ID = "userId";
+
   public SecurityFilter(SecurityProperties securityProperties, ObjectMapper objectMapper) {
     this.securityProperties = securityProperties;
     this.objectMapper = objectMapper;
@@ -75,7 +80,7 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
     if (uri.startsWith(securityProperties.getInternalPathPrefix())) {
       String internalSecret = request.getHeader("X-Internal-Secret");
       if (!isCorrectInternalSecret(internalSecret)) {
-        log.warn("Invalid internal secret for request to: {}", uri);
+        log.debug("Invalid internal secret for request to: {}", uri);
         responseForbidden(response);
         return;
       }
@@ -146,9 +151,10 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
   private void responseForbidden(HttpServletResponse response) throws IOException {
     ResponseMetadata metadata = null;
     if (RequestContextHolder.REQUEST_CONTEXT.isBound()) {
+      SpanContext spanContext = Span.current().getSpanContext();
       metadata = new ResponseMetadata(
           RequestContextHolder.get().requestId(),
-          RequestContextHolder.get().traceId(),
+          spanContext.isValid() ? spanContext.getTraceId() : null,
           null, System.currentTimeMillis());
     }
     response.setContentType("application/json");
@@ -164,9 +170,12 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
                     FilterChain filterChain) {
     ScopedValue.where(AuthContextHolder.AUTH_CONTEXT, authContext).run(() -> {
       try {
+        MDC.put(MDC_USER_ID, authContext.userId() != null ? String.valueOf(authContext.userId()) : "anonymous");
         filterChain.doFilter(request, response);
       } catch (IOException | ServletException e) {
         throw new RuntimeException(e);
+      } finally {
+        MDC.remove(MDC_USER_ID);
       }
     });
   }
