@@ -12,13 +12,15 @@ A Spring Boot security starter that provides authentication context management, 
 - ⚡ **Virtual Thread Support** - Uses Java `ScopedValue` instead of `ThreadLocal`
 - 🛡️ **Timing Attack Protection** - Constant-time secret comparison
 - 📝 **JPA Auditing Integration** - Automatic tracking of created/modified by user ID
+- 🔭 **OpenTelemetry Integration** - Automatic `enduser.id` span attribute via `UserIdSpanProcessor`
+- 📊 **MDC Logging** - Automatic `userId` MDC key injection for structured logging
 - ⚙️ **Spring Boot Auto-configuration** - Zero-config setup with sensible defaults
 
 ## Requirements
 
 - Java 25+
 - Spring Boot 4.0+
-- Intern Hub Common Library 2.0.3+
+- Intern Hub Common Library 2.0.4+
 
 ## Installation
 
@@ -30,7 +32,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.6")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Security-Starter:1.0.7")
 }
 ```
 
@@ -47,7 +49,7 @@ dependencies {
 <dependency>
     <groupId>com.github.FPT-IS-Intern</groupId>
     <artifactId>Intern-Hub-Security-Library</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 
@@ -254,6 +256,34 @@ audit:
     enabled: false
 ```
 
+### 7. OpenTelemetry Integration
+
+When `io.opentelemetry:opentelemetry-sdk-trace` is present on the classpath and a `SpanContext` bean is registered (e.g., via Spring Boot's OpenTelemetry auto-configuration), the library automatically registers a `UserIdSpanProcessor` that enriches every span with the authenticated user's ID.
+
+The processor adds the following attribute to every started span when a user is authenticated:
+
+| Attribute     | Type   | Description                          |
+| ------------- | ------ | ------------------------------------ |
+| `enduser.id`  | `Long` | The authenticated user's ID          |
+
+No additional configuration is required — the processor is auto-configured via `CustomSecurityAutoConfiguration`.
+
+> **Note:** If OpenTelemetry is not on your classpath, this feature is silently skipped.
+
+### 8. MDC Logging
+
+Starting from version **1.0.7**, the `SecurityFilter` automatically injects the current user's ID into the [SLF4J MDC](https://logback.qos.ch/manual/mdc.html) for every request. This allows you to include the user ID in all log statements without any extra code.
+
+| MDC Key    | Value                                        |
+| ---------- | -------------------------------------------- |
+| `userId`   | Authenticated user ID, or `anonymous`        |
+
+To include it in your log pattern, add `%X{userId}` to your Logback/Log4j2 configuration:
+
+```xml
+<pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] [userId=%X{userId}] %-5level %logger{36} - %msg%n</pattern>
+```
+
 ## Request Headers
 
 The security filter reads the following headers (typically set by an API Gateway):
@@ -299,6 +329,7 @@ Examples:
 │  • Validates internal secret for /internal/* endpoints      │
 │  • Parses authentication headers                            │
 │  • Binds AuthContext using ScopedValue                      │
+│  • Injects userId into MDC for structured logging           │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -314,6 +345,13 @@ Examples:
 ┌─────────────────────────────────────────────────────────────┐
 │                    Controller Method                        │
 └─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│             UserIdSpanProcessor (optional)                  │
+│  • Activated when OpenTelemetry SDK is on the classpath     │
+│  • Adds enduser.id attribute to every started span          │
+│  • Reads userId from AuthContextHolder (ScopedValue)        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Security Considerations
@@ -324,6 +362,22 @@ Examples:
 4. **Virtual Threads**: Uses `ScopedValue` for thread-safe context propagation
 
 ## Breaking Changes
+
+### Version 1.0.7 – OpenTelemetry Integration & MDC Logging
+
+#### Common Library Minimum Version Bumped to 2.0.4
+
+⚠️ **Breaking change when upgrading to 1.0.7+:** The minimum required version of `Intern-Hub-Common-Library` has been raised from `2.0.3` to `2.0.4`.
+
+**Action Required:** Ensure your project declares `Intern-Hub-Common-Library:2.0.4` or later as a dependency before upgrading.
+
+#### New Automatic MDC `userId` Key
+
+⚠️ **Potential conflict when upgrading to 1.0.7+:** The `SecurityFilter` now automatically injects a `userId` key into the SLF4J MDC for every request (set to the authenticated user's numeric ID, or `anonymous` for unauthenticated requests). The key is cleared after the request completes.
+
+If your application already populates an MDC key named `userId` via a custom filter, interceptor, or log configuration, the value set by the security filter will overwrite it for the duration of the request.
+
+**Action Required:** Rename any conflicting `userId` MDC key in your custom code, or let the library manage this key exclusively.
 
 ### Version 1.0.5 – Authority Format Change
 
