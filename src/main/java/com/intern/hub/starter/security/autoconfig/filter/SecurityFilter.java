@@ -170,7 +170,7 @@ public class SecurityFilter extends OncePerRequestFilter implements Ordered {
                     FilterChain filterChain) {
     ScopedValue.where(AuthContextHolder.AUTH_CONTEXT, authContext).run(() -> {
       try {
-        MDC.put(MDC_USER_ID, authContext.userId() != null ? String.valueOf(authContext.userId()) : "anonymous");
+        MDC.put(MDC_USER_ID, authContext.userId() != null ? String.valueOf(authContext.userId()) : (authContext.internal() ? "internal" : "anonymous"));
         filterChain.doFilter(request, response);
       } catch (IOException | ServletException e) {
         throw new RuntimeException(e);

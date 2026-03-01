@@ -52,7 +52,7 @@ dependencies {
 
     compileOnly("io.opentelemetry:opentelemetry-sdk-trace")
 
-    implementation("com.github.FPT-IS-Intern:Intern-Hub-Common-Library:2.0.4")
+    implementation("com.github.FPT-IS-Intern:Intern-Hub-Common-Library:2.0.5")
 }
 
 tasks.withType<JavaCompile> {
